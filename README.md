@@ -3,7 +3,7 @@
 This repository provides a GPU-enabled C++ development stack based on NVIDIA DeepStream, with:
 
 - Two build targets: `stable` and `advanced`
-- Project mapped from host `./project` to container `/root/project`
+- Project mapped from host `./` to container `/root/project`
 - VS Code Dev Container support (`.devcontainer/devcontainer.json`)
 - Build system support for both CMake and Qbs projects
 - C++ debugging support (`gdb`, `gdbserver`, `SYS_PTRACE`, `seccomp:unconfined`)
@@ -60,7 +60,7 @@ docker run --rm --runtime=nvidia --gpus all ubuntu:22.04 nvidia-smi
 Your host source code should live in:
 
 ```text
-./project
+./
 ```
 
 It is mounted into the container at:

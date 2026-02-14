@@ -36,7 +36,7 @@ services:
       - CONTAINER_IMAGE_NAME=ai-devbox:stable
       - CONTAINER_IMAGE_SHA=${AI_DEVBOX_STABLE_SHA:-unknown}
     volumes:
-      - ./project:/root/project
+      - ./:/root/project
       - ccache-data:/root/.ccache
     command: /bin/bash
 
@@ -81,7 +81,7 @@ services:
       - CONTAINER_IMAGE_NAME=ai-devbox:advanced
       - CONTAINER_IMAGE_SHA=${AI_DEVBOX_ADVANCED_SHA:-unknown}
     volumes:
-      - ./project:/root/project
+      - ./:/root/project
       - ccache-data:/root/.ccache
     command: /bin/bash
 
