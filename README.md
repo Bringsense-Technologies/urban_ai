@@ -3,12 +3,30 @@
 This repository provides a GPU-enabled C++ development stack based on NVIDIA DeepStream, with:
 
 - Two build targets: `stable` and `advanced`
-- Project mapped from host `./` to container `/root/project`
+- Project root mapped from host `./` to container `/root/project`
+- C++ source folder mapped from host `./source` to container `/root/project/source`
 - VS Code Dev Container support (`.devcontainer/devcontainer.json`)
 - Build system support for both CMake and Qbs projects
 - C++ debugging support (`gdb`, `gdbserver`, `SYS_PTRACE`, `seccomp:unconfined`)
 - C++ symbol demangling enabled by default in GDB
 - Shared `ccache` volume across containers
+
+## Table of contents
+
+- [1. Prerequisites](#1-prerequisites)
+- [2. Project layout expectation](#2-project-layout-expectation)
+- [3. Build images](#3-build-images)
+- [4. Launch container](#4-launch-container)
+- [4.1 Compose (recommended)](#41-compose-recommended)
+- [4.2 Equivalent `docker run`](#42-equivalent-docker-run)
+- [4.3 Numbered project launcher script](#43-numbered-project-launcher-script)
+- [5. Use from VS Code](#5-use-from-vs-code)
+- [6. Debugging notes](#6-debugging-notes)
+- [7. Qbs support (C++ projects)](#7-qbs-support-c-projects)
+- [8. ccache (shared across containers)](#8-ccache-shared-across-containers)
+- [9. Common commands](#9-common-commands)
+- [10. Container runtime info helper](#10-container-runtime-info-helper)
+- [11. Notes](#11-notes)
 
 ---
 
@@ -50,14 +68,14 @@ chmod +x setup/*.sh
 Verify GPU inside Docker:
 
 ```bash
-docker run --rm --runtime=nvidia --gpus all ubuntu:22.04 nvidia-smi
+docker run --rm --gpus all ubuntu:22.04 nvidia-smi
 ```
 
 ---
 
 ## 2. Project layout expectation
 
-Your host source code should live in:
+Your repository root should be:
 
 ```text
 ./
@@ -67,6 +85,18 @@ It is mounted into the container at:
 
 ```text
 /root/project
+```
+
+Your C++ sources should typically be placed in:
+
+```text
+./source
+```
+
+Inside the container, this path is:
+
+```text
+/root/project/source
 ```
 
 ---
@@ -100,7 +130,7 @@ docker compose up -d advanced
 Open shell in running container:
 
 ```bash
-docker exec -it c1 /bin/bash
+docker exec -it ai-devbox-advanced /bin/bash
 ```
 
 Stop it:
@@ -121,14 +151,16 @@ If you prefer direct `docker run`, equivalent behavior is:
 
 ```bash
 docker run -d \
-  --name c1 \
+  --name ai-devbox-advanced \
   --restart unless-stopped \
-  --runtime=nvidia \
+  --gpus all \
   -e NVIDIA_VISIBLE_DEVICES=all \
-  -v ~/<project>:/root/project \
+  -v "$PWD:/root/project" \
   -v ai-devbox-ccache:/root/.ccache \
   ai-devbox:advanced
 ```
+
+Run this command from the repository root.
 
 ### 4.3 Numbered project launcher script
 
@@ -151,6 +183,8 @@ This starts container `MyProject10` and maps:
 
 - host: `~/Development/MyProject10`
 - container: `/root/project`
+
+Inside that container, C++ sources in the host checkout's `source/` folder are available at `/root/project/source`.
 
 ---
 
@@ -285,6 +319,14 @@ Output includes:
 - image SHA
 
 By default, SHA is `unknown`. To provide it for compose launches:
+
+Create `.env` from `.env.example` and set the values:
+
+```bash
+cp .env.example .env
+```
+
+Or export values directly in your shell:
 
 ```bash
 export AI_DEVBOX_ADVANCED_SHA="$(docker image inspect ai-devbox:advanced --format '{{.Id}}')"

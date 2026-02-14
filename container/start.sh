@@ -23,6 +23,26 @@ if [[ -z "${PROJECT_PREFIX:-}" ]]; then
   exit 1
 fi
 
+if ! command -v docker >/dev/null 2>&1; then
+  echo "Error: docker CLI not found in PATH" >&2
+  exit 1
+fi
+
+if ! docker info >/dev/null 2>&1; then
+  echo "Error: cannot reach Docker daemon. Is Docker running and is your user in the docker group?" >&2
+  exit 1
+fi
+
+if ! docker run --help 2>/dev/null | grep -q -- '--gpus'; then
+  echo "Error: docker CLI does not support --gpus. Install/update NVIDIA Container Toolkit and Docker." >&2
+  exit 1
+fi
+
+if ! docker image inspect ai-devbox:advanced >/dev/null 2>&1; then
+  echo "Error: image 'ai-devbox:advanced' not found. Build it first: docker compose build advanced" >&2
+  exit 1
+fi
+
 prefix_expanded="${PROJECT_PREFIX/#\~/$HOME}"
 project_path="${prefix_expanded}${number}"
 project_name_base="$(basename "$prefix_expanded")"
@@ -39,7 +59,7 @@ fi
 docker run -d \
   --name "$container_name" \
   --restart unless-stopped \
-  --runtime=nvidia \
+  --gpus all \
   -e NVIDIA_VISIBLE_DEVICES=all \
   -v "$project_path:/root/project" \
   -v ai-devbox-ccache:/root/.ccache \

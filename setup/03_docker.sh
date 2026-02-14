@@ -1,3 +1,6 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
 # Add Docker's official GPG key:
 sudo apt-get update
 sudo apt-get install -y ca-certificates curl
@@ -16,4 +19,5 @@ sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plug
 
 # Add your user to the docker group (so you don't need 'sudo docker')
 sudo usermod -aG docker $USER
-newgrp docker
+echo "Docker group updated for user '$USER'."
+echo "Log out and back in (or reboot) before running docker without sudo."

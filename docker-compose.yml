@@ -23,7 +23,8 @@ services:
         EIGEN_VERSION: "3.4.0"
 
     image: ai-devbox:stable
-    runtime: nvidia
+    container_name: ai-devbox-stable
+    gpus: all
     cap_add:
       - SYS_PTRACE
     security_opt:
@@ -32,12 +33,18 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - CCACHE_DIR=/root/.ccache
       - CCACHE_MAXSIZE=20G
-      - CONTAINER_NAME=stable
+      - CONTAINER_NAME=ai-devbox-stable
       - CONTAINER_IMAGE_NAME=ai-devbox:stable
       - CONTAINER_IMAGE_SHA=${AI_DEVBOX_STABLE_SHA:-unknown}
     volumes:
       - ./:/root/project
       - ccache-data:/root/.ccache
+    healthcheck:
+      test: ["CMD-SHELL", "nvidia-smi >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     command: /bin/bash
 
   # ---------------------------------------------------------------------------
@@ -66,8 +73,8 @@ services:
         EIGEN_VERSION: "5.0.0"
 
     image: ai-devbox:advanced
-    container_name: c1
-    runtime: nvidia
+    container_name: ai-devbox-advanced
+    gpus: all
     restart: unless-stopped
     cap_add:
       - SYS_PTRACE
@@ -77,12 +84,18 @@ services:
       - NVIDIA_VISIBLE_DEVICES=all
       - CCACHE_DIR=/root/.ccache
       - CCACHE_MAXSIZE=20G
-      - CONTAINER_NAME=c1
+      - CONTAINER_NAME=ai-devbox-advanced
       - CONTAINER_IMAGE_NAME=ai-devbox:advanced
       - CONTAINER_IMAGE_SHA=${AI_DEVBOX_ADVANCED_SHA:-unknown}
     volumes:
       - ./:/root/project
       - ccache-data:/root/.ccache
+    healthcheck:
+      test: ["CMD-SHELL", "nvidia-smi >/dev/null 2>&1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
     command: /bin/bash
 
 volumes:
