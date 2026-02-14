@@ -3,8 +3,8 @@
 This repository provides a GPU-enabled C++ development stack based on NVIDIA DeepStream, with:
 
 - Two build targets: `stable` and `advanced`
-- Project root mapped from host `./` to container `/root/project`
-- C++ source folder mapped from host `./source` to container `/root/project/source`
+- Project root mapped from host <project> to container `/root/project`
+- C++ source folder mapped from host `<project>/source` to container `/root/project/source`
 - VS Code Dev Container support (`.devcontainer/devcontainer.json`)
 - Build system support for both CMake and Qbs projects
 - C++ debugging support (`gdb`, `gdbserver`, `SYS_PTRACE`, `seccomp:unconfined`)
