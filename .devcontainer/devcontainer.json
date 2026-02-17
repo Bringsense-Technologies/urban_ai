@@ -1,9 +1,14 @@
 {
   "name": "AI DevBox (advanced)",
   "dockerComposeFile": [
-    "../docker-compose.yml"
+    "../docker-compose.yml",
+    "docker-compose.devcontainer.yml"
   ],
   "service": "advanced",
+  "runServices": [
+    "advanced"
+  ],
+  "overrideCommand": false,
   "workspaceFolder": "/root/project",
   "shutdownAction": "stopCompose",
   "customizations": {

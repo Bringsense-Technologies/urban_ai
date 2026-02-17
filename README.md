@@ -194,6 +194,10 @@ Inside that container, C++ sources in the host checkout's `source/` folder are a
 2. Run: **Dev Containers: Rebuild and Reopen in Container**.
 3. VS Code attaches to service `advanced` with workspace folder `/root/project`.
 
+Dev Containers also loads `.devcontainer/docker-compose.devcontainer.yml`, which disables
+container restart policy and healthcheck for the `advanced` service during editor attach.
+This avoids reconnect loops and extension-install stalls in the remote container session.
+
 Recommended extensions are configured automatically:
 
 - `ms-vscode.cpptools`

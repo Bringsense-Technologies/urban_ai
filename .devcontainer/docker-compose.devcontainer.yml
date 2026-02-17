@@ -1,0 +1,5 @@
+services:
+  advanced:
+    restart: "no"
+    healthcheck:
+      disable: true
