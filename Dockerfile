@@ -139,7 +139,7 @@ COPY --from=downloader /opt/libtorch /opt/libtorch
 COPY --from=downloader /opt/eigen /opt/eigen
 
 # Environment variables for C++ tooling
-ENV Torch_DIR=/opt/libtorch
+ENV Torch_DIR=/opt/libtorch/share/cmake/Torch
 ENV LD_LIBRARY_PATH=/opt/libtorch/lib:$LD_LIBRARY_PATH
 
 RUN printf '%s\n' \

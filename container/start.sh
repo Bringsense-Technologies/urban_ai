@@ -97,12 +97,14 @@ docker run -d \
   --name "$container_name" \
   --restart unless-stopped \
   --gpus all \
+  --cap-add SYS_PTRACE \
+  --security-opt seccomp:unconfined \
   -e CMAKE_BUILD_PARALLEL_LEVEL="$cmake_parallel_level" \
   -e AI_DEVBOX_BUILD_JOBS="$ai_devbox_build_jobs" \
   -e CCACHE_MAXSIZE="$ccache_maxsize" \
   -e NVIDIA_VISIBLE_DEVICES=all \
   -v "$project_path:/root/project" \
-  -v ai-devbox-ccache:/root/.ccache \
+  -v "${COMPOSE_PROJECT_NAME:-ai-devbox}-ccache:/root/.ccache" \
   ai-devbox:advanced
 
 echo "Started container: $container_name"
