@@ -18,6 +18,7 @@ This repository provides a GPU-enabled C++ development stack based on NVIDIA Dee
 - [1. Prerequisites](#1-prerequisites)
 - [2. Project layout expectation](#2-project-layout-expectation)
 - [3. Build images](#3-build-images)
+- [3.1 Dependency matrix](#31-dependency-matrix)
 - [4. Launch container](#4-launch-container)
 - [4.1 Compose (recommended)](#41-compose-recommended)
 - [4.2 Equivalent `docker run`](#42-equivalent-docker-run)
@@ -119,11 +120,31 @@ Inside the container, this path is:
 
 ## 3. Build images
 
+Use the helper script (recommended):
+
+```bash
+bash ./container/compose-build.sh
+```
+
+It wraps `docker compose build` from the repository root and accepts optional flags such as `--no-cache` and `--pull`.
+
 Build `advanced` (current active/default dev target):
 
 ```bash
 docker compose build advanced
 ```
+
+For reproducible builds, set a pinned base image reference and enable checksum enforcement in `.env` before building:
+
+```bash
+cp .env.example .env
+echo 'ADVANCED_BASE_IMAGE_URL=nvcr.io/nvidia/deepstream:8.0-triton-multiarch@sha256:<digest>' >> .env
+echo 'ADVANCED_GCC_VERSION=14' >> .env
+echo 'ADVANCED_CMAKE_VERSION=3.31.0' >> .env
+echo 'REQUIRE_TORCH_SHA256=1' >> .env
+```
+
+Note: there is no separate `UBUNTU_VERSION` setting. The Ubuntu release inside the container comes from the selected base image.
 
 `stable` is currently commented out in `docker-compose.yml`.
 To use it again, uncomment the `stable` service block first, then build:
@@ -131,6 +152,26 @@ To use it again, uncomment the `stable` service block first, then build:
 ```bash
 docker compose build stable
 ```
+
+Examples with the helper:
+
+```bash
+bash ./container/compose-build.sh advanced --pull
+bash ./container/compose-build.sh advanced --no-cache
+```
+
+### 3.1 Dependency matrix
+
+| Component | Advanced default | Source |
+| --- | --- | --- |
+| Base image | `nvcr.io/nvidia/deepstream:8.0-triton-multiarch` | `ADVANCED_BASE_IMAGE_URL` build arg |
+| GCC | `14` | `ADVANCED_GCC_VERSION` build arg |
+| CMake | `3.31.0` | `ADVANCED_CMAKE_VERSION` build arg |
+| LibTorch | `2.5.1+cu121` archive URL | PyTorch download URL build arg |
+| Eigen | `5.0.0` | Git clone by tag |
+| OpenCV | `libopencv-dev` | Ubuntu package in runtime image |
+| Qbs | distro package | Ubuntu package in runtime image |
+| ccache size | `20G` | `CCACHE_MAXSIZE` build/runtime env |
 
 ---
 
@@ -148,6 +189,7 @@ It computes `(cores - 1)` (minimum `1`) and exports:
 
 - `CMAKE_BUILD_PARALLEL_LEVEL`
 - `AI_DEVBOX_BUILD_JOBS`
+- `CCACHE_MAXSIZE` remains configurable and defaults to `20G`
 
 Then it runs `docker compose up -d advanced`.
 
@@ -174,7 +216,7 @@ docker compose up -d advanced
 Quick override example:
 
 ```bash
-CMAKE_BUILD_PARALLEL_LEVEL=6 AI_DEVBOX_BUILD_JOBS=6 docker compose up -d advanced
+CMAKE_BUILD_PARALLEL_LEVEL=6 AI_DEVBOX_BUILD_JOBS=6 CCACHE_MAXSIZE=40G docker compose up -d advanced
 ```
 
 Open shell in running container:
@@ -207,6 +249,7 @@ docker run -d \
   -e NVIDIA_VISIBLE_DEVICES=all \
   -e CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-1}" \
   -e AI_DEVBOX_BUILD_JOBS="${AI_DEVBOX_BUILD_JOBS:-1}" \
+  -e CCACHE_MAXSIZE="${CCACHE_MAXSIZE:-20G}" \
   -v "$PWD:/root/project" \
   -v ai-devbox-ccache:/root/.ccache \
   ai-devbox:advanced
@@ -270,7 +313,7 @@ The launcher also sets conservative defaults for build parallelism to keep GUI h
 Both values are clamped to a minimum of `1`, and can be overridden before launching:
 
 ```bash
-CMAKE_BUILD_PARALLEL_LEVEL=6 AI_DEVBOX_BUILD_JOBS=6 PROJECT_PREFIX=~/Development/MyProject ./container/start.sh 10
+CMAKE_BUILD_PARALLEL_LEVEL=6 AI_DEVBOX_BUILD_JOBS=6 CCACHE_MAXSIZE=40G PROJECT_PREFIX=~/Development/MyProject ./container/start.sh 10
 ```
 
 ---
@@ -290,6 +333,8 @@ Recommended extensions are configured automatically:
 - `ms-vscode.cpptools`
 - `ms-vscode.cmake-tools`
 - `bierner.markdown-mermaid`
+- `qbs-community.qbs-tools`
+- `xaver.clang-format`
 
 ---
 
@@ -385,6 +430,8 @@ Check cache stats:
 ccache -s
 ```
 
+Default max size is `20G`. Override it with `CCACHE_MAXSIZE` in `.env`, for example `CCACHE_MAXSIZE=40G`.
+
 Clear cache if needed:
 
 ```bash
@@ -404,7 +451,7 @@ bash ./container/compose-up.sh
 Rebuild advanced image:
 
 ```bash
-docker compose build --no-cache advanced
+bash ./container/compose-build.sh advanced --no-cache
 ```
 
 View logs:
@@ -453,28 +500,11 @@ Output includes:
 
 - container name
 - image name
-- image SHA
+- base image reference
+- GCC, CMake, and Eigen versions
+- ccache max size
 
-By default, SHA is `unknown`. To provide it for compose launches:
-
-Create `.env` from `.env.example` and set the values:
-
-```bash
-cp .env.example .env
-```
-
-Or export values directly in your shell:
-
-```bash
-export AI_DEVBOX_ADVANCED_SHA="$(docker image inspect ai-devbox:advanced --format '{{.Id}}')"
-CORES="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
-export CMAKE_BUILD_PARALLEL_LEVEL=$((CORES - 1))
-if [[ "${CMAKE_BUILD_PARALLEL_LEVEL}" -lt 1 ]]; then export CMAKE_BUILD_PARALLEL_LEVEL=1; fi
-export AI_DEVBOX_BUILD_JOBS="${CMAKE_BUILD_PARALLEL_LEVEL}"
-docker compose up -d advanced
-```
-
-You can do the same for `stable` using `AI_DEVBOX_STABLE_SHA`.
+The metadata is embedded during image build via OCI labels and a small release file in the image, so no manual `.env` bookkeeping is required.
 
 ---
 
@@ -483,3 +513,4 @@ You can do the same for `stable` using `AI_DEVBOX_STABLE_SHA`.
 - Container working directory is `/root/project`.
 - If NVIDIA runtime fails, recheck driver/toolkit installation and restart Docker.
 - If image tags (DeepStream/LibTorch) change upstream, update build args in `docker-compose.yml`.
+- `setup/01_nvidia_drivers.sh` accepts `NVIDIA_DRIVER_VERSION` and `NVIDIA_DRIVER_FLAVOR` (`open` or `proprietary`).

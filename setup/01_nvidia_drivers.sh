@@ -1,7 +1,21 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-TARGET_VERSION="590"
+TARGET_VERSION="${NVIDIA_DRIVER_VERSION:-590}"
+DRIVER_FLAVOR="${NVIDIA_DRIVER_FLAVOR:-open}"
+
+case "${DRIVER_FLAVOR}" in
+  open)
+    DRIVER_PACKAGE="nvidia-driver-${TARGET_VERSION}-open"
+    ;;
+  proprietary)
+    DRIVER_PACKAGE="nvidia-driver-${TARGET_VERSION}"
+    ;;
+  *)
+    echo "Unsupported NVIDIA_DRIVER_FLAVOR='${DRIVER_FLAVOR}'. Use 'open' or 'proprietary'." >&2
+    exit 1
+    ;;
+esac
 
 # Skip installation if an NVIDIA driver at the target version or newer is already present.
 if command -v nvidia-smi >/dev/null 2>&1; then
@@ -18,7 +32,8 @@ sudo apt-get update \
 	-o Dir::Etc::sourcelist="sources.list" \
 	-o Dir::Etc::sourceparts="-" \
 	-o APT::Get::List-Cleanup="0"
-sudo apt install -y "nvidia-driver-${TARGET_VERSION}-open" "nvidia-utils-${TARGET_VERSION}"
+echo "Installing ${DRIVER_PACKAGE} and nvidia-utils-${TARGET_VERSION}"
+sudo apt-get install -y "${DRIVER_PACKAGE}" "nvidia-utils-${TARGET_VERSION}"
 # REBOOT NOW
 # sudo reboot
 

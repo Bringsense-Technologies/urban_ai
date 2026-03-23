@@ -15,11 +15,15 @@
     "vscode": {
       "extensions": [
         "ms-vscode.cpptools",
-        "ms-vscode.cmake-tools"
+        "ms-vscode.cmake-tools",
+        "bierner.markdown-mermaid",
+        "qbs-community.qbs-tools",
+        "xaver.clang-format"
       ],
       "settings": {
         "cmake.generator": "Ninja",
-        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+        "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+        "editor.defaultFormatter": "xaver.clang-format"
       }
     }
   }

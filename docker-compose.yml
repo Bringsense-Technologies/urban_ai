@@ -13,16 +13,17 @@ services:
   #       BASE_IMAGE_URL: "nvcr.io/nvidia/deepstream:7.0-triton-multiarch"
 
   #       # GCC 12 is the standard stable for C++20
-  #       GCC_VERSION: "12"
+  #       GCC_VERSION: "${STABLE_GCC_VERSION:-12}"
 
   #       # CMake 3.28 is solid
-  #       CMAKE_VERSION: "3.28.3"
+  #       CMAKE_VERSION: "${STABLE_CMAKE_VERSION:-3.28.3}"
   #       CCACHE_MAXSIZE: "${CCACHE_MAXSIZE:-20G}"
 
   #       # LibTorch 2.2.1 (CUDA 12.1) - Stable
   #       TORCH_URL: "https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.2.1%2Bcu121.zip"
 
   #       TORCH_SHA256: "${TORCH_SHA256:-}"
+  #       REQUIRE_TORCH_SHA256: "${REQUIRE_TORCH_SHA256:-0}"
   #       EIGEN_VERSION: "3.4.0"
   #       SKIP_OS_UPGRADE: "${SKIP_OS_UPGRADE:-0}"
 
@@ -35,11 +36,12 @@ services:
   #     - seccomp:unconfined
   #   environment:
   #     - NVIDIA_VISIBLE_DEVICES=all
+  #     - CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:-1}
+  #     - AI_DEVBOX_BUILD_JOBS=${AI_DEVBOX_BUILD_JOBS:-1}
   #     - CCACHE_DIR=/root/.ccache
-  #     - CCACHE_MAXSIZE=20G
+  #     - CCACHE_MAXSIZE=${CCACHE_MAXSIZE:-20G}
   #     - CONTAINER_NAME=${COMPOSE_PROJECT_NAME:-ai-devbox}-stable
   #     - CONTAINER_IMAGE_NAME=ai-devbox:stable
-  #     - CONTAINER_IMAGE_SHA=${AI_DEVBOX_STABLE_SHA:-unknown}
   #   volumes:
   #     - ./:/root/project
   #     - ccache-data:/root/.ccache
@@ -49,7 +51,7 @@ services:
   #     timeout: 10s
   #     retries: 3
   #     start_period: 20s
-  #   command: ["tail", "-f", "/dev/null"]
+  #   command: ["sleep", "infinity"]
 
   # ---------------------------------------------------------------------------
   # GROUP 2: Advanced
@@ -64,10 +66,10 @@ services:
         BASE_IMAGE_URL: "${ADVANCED_BASE_IMAGE_URL:-nvcr.io/nvidia/deepstream:8.0-triton-multiarch}"
 
         # GCC 14/15 for C++23 and C++26 experimental support
-        GCC_VERSION: "14"
+        GCC_VERSION: "${ADVANCED_GCC_VERSION:-14}"
 
         # Latest CMake for Module support
-        CMAKE_VERSION: "3.31.0"
+        CMAKE_VERSION: "${ADVANCED_CMAKE_VERSION:-3.31.0}"
         CCACHE_MAXSIZE: "${CCACHE_MAXSIZE:-20G}"
 
         # LibTorch Nightly/Latest (CUDA 12.x or 13.x if available)
@@ -75,6 +77,7 @@ services:
         TORCH_URL: "https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.5.1%2Bcu121.zip"
 
         TORCH_SHA256: "${TORCH_SHA256:-}"
+        REQUIRE_TORCH_SHA256: "${REQUIRE_TORCH_SHA256:-0}"
         EIGEN_VERSION: "5.0.0"
         SKIP_OS_UPGRADE: "${SKIP_OS_UPGRADE:-0}"
 
@@ -88,13 +91,12 @@ services:
       - seccomp:unconfined
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-      - CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL}
-      - AI_DEVBOX_BUILD_JOBS=${AI_DEVBOX_BUILD_JOBS}
+      - CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:-1}
+      - AI_DEVBOX_BUILD_JOBS=${AI_DEVBOX_BUILD_JOBS:-1}
       - CCACHE_DIR=/root/.ccache
-      - CCACHE_MAXSIZE=20G
+      - CCACHE_MAXSIZE=${CCACHE_MAXSIZE:-20G}
       - CONTAINER_NAME=${COMPOSE_PROJECT_NAME:-ai-devbox}-advanced
       - CONTAINER_IMAGE_NAME=ai-devbox:advanced
-      - CONTAINER_IMAGE_SHA=${AI_DEVBOX_ADVANCED_SHA:-unknown}
     volumes:
       - ./:/root/project
       - ccache-data:/root/.ccache

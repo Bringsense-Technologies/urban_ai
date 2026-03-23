@@ -13,16 +13,7 @@ fi
 require_docker
 
 service="${1:-advanced}"
-
-cores="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
-if [[ ! "${cores}" =~ ^[0-9]+$ || "${cores}" -lt 1 ]]; then
-  cores=1
-fi
-
-jobs=$((cores - 1))
-if [[ "${jobs}" -lt 1 ]]; then
-  jobs=1
-fi
+jobs="$(resolve_default_build_jobs)"
 
 if [[ -z "${CMAKE_BUILD_PARALLEL_LEVEL:-}" ]]; then
   export CMAKE_BUILD_PARALLEL_LEVEL="${jobs}"
@@ -37,5 +28,6 @@ cd "${REPO_ROOT}"
 echo "Starting compose service '${service}'"
 echo "CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL}"
 echo "AI_DEVBOX_BUILD_JOBS=${AI_DEVBOX_BUILD_JOBS}"
+echo "CCACHE_MAXSIZE=${CCACHE_MAXSIZE:-20G}"
 
 docker compose up -d "${service}"

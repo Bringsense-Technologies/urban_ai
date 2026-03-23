@@ -1,0 +1,42 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  repo-validation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install validation tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y shellcheck jq
+
+      - name: Validate shell syntax
+        run: |
+          bash -n setup/*.sh
+          bash -n container/*.sh
+          bash -n source/format-code.sh
+
+      - name: Run ShellCheck
+        run: |
+          shellcheck -x setup/*.sh
+          shellcheck -x container/*.sh
+          shellcheck source/format-code.sh
+
+      - name: Validate devcontainer JSON
+        run: jq empty .devcontainer/devcontainer.json
+
+      - name: Validate compose rendering
+        run: docker compose -f docker-compose.yml config >/tmp/docker-compose.rendered.yml
+
+      - name: Check documentation coverage
+        run: |
+          grep -q 'Dependency matrix' README.md
+          grep -q 'OpenCV' README.md
+          grep -q 'REQUIRE_TORCH_SHA256' .env.example

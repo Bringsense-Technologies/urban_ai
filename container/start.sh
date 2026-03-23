@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib.sh
+source "${SCRIPT_DIR}/lib.sh"
+
 usage() {
   echo "Usage: PROJECT_PREFIX=~/Development/MyProject $0 [number]"
   echo "Example: PROJECT_PREFIX=~/Development/MyProject $0 10"
@@ -12,23 +16,7 @@ if [[ $# -gt 1 ]]; then
   exit 1
 fi
 
-if ! command -v docker >/dev/null 2>&1; then
-  echo "Error: docker CLI not found in PATH" >&2
-  exit 1
-fi
-
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-
-if ! docker info >/dev/null 2>&1; then
-  echo "Error: cannot reach Docker daemon. Is Docker running and is your user in the docker group?" >&2
-  exit 1
-fi
-
-if ! docker run --help 2>/dev/null | grep -q -- '--gpus'; then
-  echo "Error: docker CLI does not support --gpus. Install/update NVIDIA Container Toolkit and Docker." >&2
-  exit 1
-fi
+require_docker
 
 if ! docker image inspect ai-devbox:advanced >/dev/null 2>&1; then
   echo "Image 'ai-devbox:advanced' not found. Building it now..."
@@ -39,11 +27,7 @@ if ! docker image inspect ai-devbox:advanced >/dev/null 2>&1; then
     exit 1
   fi
 
-  if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
-    echo "Error: Docker Compose plugin is not available." >&2
-    echo "Install it, then build manually: docker compose build advanced" >&2
-    exit 1
-  fi
+  require_docker_compose
 
   docker compose -f "${REPO_ROOT}/docker-compose.yml" build advanced
 
@@ -102,18 +86,12 @@ if docker ps -a --format '{{.Names}}' | grep -Fxq "$container_name"; then
   exit 1
 fi
 
-host_cores="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
-if [[ ! "${host_cores}" =~ ^[0-9]+$ || "${host_cores}" -lt 1 ]]; then
-  host_cores=1
-fi
-default_build_jobs=$((host_cores - 1))
-if [[ "${default_build_jobs}" -lt 1 ]]; then
-  default_build_jobs=1
-fi
+default_build_jobs="$(resolve_default_build_jobs)"
 
 # Allow overrides while defaulting to one less than total host cores for desktop responsiveness.
 cmake_parallel_level="${CMAKE_BUILD_PARALLEL_LEVEL:-${default_build_jobs}}"
 ai_devbox_build_jobs="${AI_DEVBOX_BUILD_JOBS:-${default_build_jobs}}"
+ccache_maxsize="${CCACHE_MAXSIZE:-20G}"
 
 docker run -d \
   --name "$container_name" \
@@ -121,6 +99,7 @@ docker run -d \
   --gpus all \
   -e CMAKE_BUILD_PARALLEL_LEVEL="$cmake_parallel_level" \
   -e AI_DEVBOX_BUILD_JOBS="$ai_devbox_build_jobs" \
+  -e CCACHE_MAXSIZE="$ccache_maxsize" \
   -e NVIDIA_VISIBLE_DEVICES=all \
   -v "$project_path:/root/project" \
   -v ai-devbox-ccache:/root/.ccache \
@@ -129,3 +108,4 @@ docker run -d \
 echo "Started container: $container_name"
 echo "Host path mapped to /root/project: $project_path"
 echo "Default build jobs in container: CMAKE_BUILD_PARALLEL_LEVEL=${cmake_parallel_level}, AI_DEVBOX_BUILD_JOBS=${ai_devbox_build_jobs}"
+echo "ccache max size in container: CCACHE_MAXSIZE=${ccache_maxsize}"

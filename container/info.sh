@@ -12,15 +12,40 @@ if ! is_in_container; then
   exit 0
 fi
 
+build_info_file="/etc/ai-devbox-release"
 container_name="${CONTAINER_NAME:-}"
 if [[ -z "${container_name}" ]]; then
   container_name="$(cat /etc/hostname 2>/dev/null || true)"
 fi
 
 image_name="${CONTAINER_IMAGE_NAME:-${IMAGE_NAME:-unknown}}"
-image_sha="${CONTAINER_IMAGE_SHA:-${IMAGE_SHA:-unknown}}"
+base_image="unknown"
+gcc_version="unknown"
+cmake_version="unknown"
+eigen_version="unknown"
+ccache_maxsize="${CCACHE_MAXSIZE:-unknown}"
+
+if [[ -f "${build_info_file}" ]]; then
+  while IFS='=' read -r key value; do
+    case "${key}" in
+      AI_DEVBOX_BASE_IMAGE) base_image="${value}" ;;
+      AI_DEVBOX_GCC_VERSION) gcc_version="${value}" ;;
+      AI_DEVBOX_CMAKE_VERSION) cmake_version="${value}" ;;
+      AI_DEVBOX_EIGEN_VERSION) eigen_version="${value}" ;;
+      AI_DEVBOX_CCACHE_MAXSIZE)
+        if [[ -z "${CCACHE_MAXSIZE:-}" ]]; then
+          ccache_maxsize="${value}"
+        fi
+        ;;
+    esac
+  done < "${build_info_file}"
+fi
 
 echo "Inside container: yes"
 echo "Container name: ${container_name:-unknown}"
 echo "Image name: ${image_name}"
-echo "Image SHA:  ${image_sha}"
+echo "Base image: ${base_image}"
+echo "GCC version: ${gcc_version}"
+echo "CMake version: ${cmake_version}"
+echo "Eigen version: ${eigen_version}"
+echo "ccache max size: ${ccache_maxsize}"

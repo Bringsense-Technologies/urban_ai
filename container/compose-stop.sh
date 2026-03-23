@@ -10,7 +10,7 @@ if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then
   exit 0
 fi
 
-require_docker
+require_docker_compose
 
 service="${1:-advanced}"
 

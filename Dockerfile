@@ -13,6 +13,7 @@ ARG CMAKE_VERSION
 ARG TORCH_URL
 # Optional SHA256 for LibTorch; if set, the download is verified.
 ARG TORCH_SHA256=""
+ARG REQUIRE_TORCH_SHA256=0
 ARG EIGEN_VERSION
 ARG DEBIAN_FRONTEND=noninteractive
 
@@ -36,6 +37,9 @@ RUN wget -q "https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION
 RUN wget -q "${TORCH_URL}" -O libtorch.zip \
     && if [ -n "${TORCH_SHA256}" ]; then \
          echo "${TORCH_SHA256}  libtorch.zip" | sha256sum -c -; \
+             elif [ "${REQUIRE_TORCH_SHA256}" = "1" ]; then \
+                 echo "Error: TORCH_SHA256 is required but was not provided." >&2; \
+                 exit 1; \
        else \
          echo "Warning: TORCH_SHA256 not set; skipping LibTorch checksum verification."; \
        fi \
@@ -54,8 +58,25 @@ FROM ${BASE_IMAGE_URL}
 # Re-declare global ARG so it is visible in RUN commands of this stage.
 ARG BASE_IMAGE_URL
 ARG GCC_VERSION
+ARG CMAKE_VERSION
+ARG TORCH_URL
+ARG TORCH_SHA256=""
+ARG REQUIRE_TORCH_SHA256=0
+ARG EIGEN_VERSION
+ARG CCACHE_MAXSIZE="20G"
 ARG SKIP_OS_UPGRADE=0
 ARG DEBIAN_FRONTEND=noninteractive
+
+LABEL org.opencontainers.image.title="AI DevBox" \
+    org.opencontainers.image.description="GPU-enabled C++ development stack based on NVIDIA DeepStream" \
+    ai.devbox.base_image="${BASE_IMAGE_URL}" \
+    ai.devbox.gcc_version="${GCC_VERSION}" \
+    ai.devbox.cmake_version="${CMAKE_VERSION}" \
+    ai.devbox.torch_url="${TORCH_URL}" \
+    ai.devbox.torch_sha256="${TORCH_SHA256}" \
+    ai.devbox.require_torch_sha256="${REQUIRE_TORCH_SHA256}" \
+    ai.devbox.eigen_version="${EIGEN_VERSION}" \
+    ai.devbox.ccache_maxsize="${CCACHE_MAXSIZE}"
 
 RUN echo "Building AI Stack with:" && \
     echo "  Base: ${BASE_IMAGE_URL}" && \
@@ -104,7 +125,6 @@ RUN update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-${GCC_VERSION} 1
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-${GCC_VERSION} 100
 
 # ccache defaults (shared cache dir is mounted from docker-compose)
-ARG CCACHE_MAXSIZE="20G"
 ENV CCACHE_DIR=/root/.ccache
 ENV CCACHE_MAXSIZE=${CCACHE_MAXSIZE}
 ENV PATH=/usr/lib/ccache:$PATH
@@ -121,6 +141,17 @@ COPY --from=downloader /opt/eigen /opt/eigen
 # Environment variables for C++ tooling
 ENV Torch_DIR=/opt/libtorch
 ENV LD_LIBRARY_PATH=/opt/libtorch/lib:$LD_LIBRARY_PATH
+
+RUN printf '%s\n' \
+    "AI_DEVBOX_BASE_IMAGE=${BASE_IMAGE_URL}" \
+    "AI_DEVBOX_GCC_VERSION=${GCC_VERSION}" \
+    "AI_DEVBOX_CMAKE_VERSION=${CMAKE_VERSION}" \
+    "AI_DEVBOX_TORCH_URL=${TORCH_URL}" \
+    "AI_DEVBOX_TORCH_SHA256=${TORCH_SHA256}" \
+    "AI_DEVBOX_REQUIRE_TORCH_SHA256=${REQUIRE_TORCH_SHA256}" \
+    "AI_DEVBOX_EIGEN_VERSION=${EIGEN_VERSION}" \
+    "AI_DEVBOX_CCACHE_MAXSIZE=${CCACHE_MAXSIZE}" \
+    > /etc/ai-devbox-release
 
 # -----------------------------------------------------------------------------
 # 4. ENTRYPOINT
