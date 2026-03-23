@@ -38,4 +38,7 @@
 .vscode/
 build/
 
+# Local environment overrides (copy .env.example to .env; never commit secrets)
+.env
+
 

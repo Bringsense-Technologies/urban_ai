@@ -30,5 +30,15 @@ sudo apt-get install -y nvidia-container-toolkit
 sudo nvidia-ctk runtime configure --runtime=docker
 sudo systemctl restart docker
 
-docker run --rm --gpus all ubuntu:22.04 nvidia-smi
+# Verify GPU is accessible inside Docker.
+# Use a named container so a cleanup trap can remove it on script failure.
+_verify_container="_ai_devbox_toolkit_verify_"
+_cleanup_verify() {
+  docker rm -f "${_verify_container}" 2>/dev/null || true
+}
+trap _cleanup_verify EXIT
+
+docker run --rm --name "${_verify_container}" --gpus all ubuntu:22.04 nvidia-smi
+
+trap - EXIT
 

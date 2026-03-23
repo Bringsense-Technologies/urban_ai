@@ -17,10 +17,12 @@ services:
 
   #       # CMake 3.28 is solid
   #       CMAKE_VERSION: "3.28.3"
+  #       CCACHE_MAXSIZE: "${CCACHE_MAXSIZE:-20G}"
 
   #       # LibTorch 2.2.1 (CUDA 12.1) - Stable
   #       TORCH_URL: "https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.2.1%2Bcu121.zip"
 
+  #       TORCH_SHA256: "${TORCH_SHA256:-}"
   #       EIGEN_VERSION: "3.4.0"
   #       SKIP_OS_UPGRADE: "${SKIP_OS_UPGRADE:-0}"
 
@@ -66,11 +68,13 @@ services:
 
         # Latest CMake for Module support
         CMAKE_VERSION: "3.31.0"
+        CCACHE_MAXSIZE: "${CCACHE_MAXSIZE:-20G}"
 
         # LibTorch Nightly/Latest (CUDA 12.x or 13.x if available)
         # Note: You might need to update this URL to the 'nightly' path
         TORCH_URL: "https://download.pytorch.org/libtorch/cu121/libtorch-cxx11-abi-shared-with-deps-2.5.1%2Bcu121.zip"
 
+        TORCH_SHA256: "${TORCH_SHA256:-}"
         EIGEN_VERSION: "5.0.0"
         SKIP_OS_UPGRADE: "${SKIP_OS_UPGRADE:-0}"
 
@@ -84,8 +88,8 @@ services:
       - seccomp:unconfined
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
-      - CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:-1}
-      - AI_DEVBOX_BUILD_JOBS=${AI_DEVBOX_BUILD_JOBS:-1}
+      - CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL}
+      - AI_DEVBOX_BUILD_JOBS=${AI_DEVBOX_BUILD_JOBS}
       - CCACHE_DIR=/root/.ccache
       - CCACHE_MAXSIZE=20G
       - CONTAINER_NAME=${COMPOSE_PROJECT_NAME:-ai-devbox}-advanced
@@ -100,7 +104,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
-    command: ["tail", "-f", "/dev/null"]
+    command: ["sleep", "infinity"]
 
 volumes:
   ccache-data:
