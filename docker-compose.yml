@@ -84,6 +84,8 @@ services:
       - seccomp:unconfined
     environment:
       - NVIDIA_VISIBLE_DEVICES=all
+      - CMAKE_BUILD_PARALLEL_LEVEL=${CMAKE_BUILD_PARALLEL_LEVEL:-1}
+      - AI_DEVBOX_BUILD_JOBS=${AI_DEVBOX_BUILD_JOBS:-1}
       - CCACHE_DIR=/root/.ccache
       - CCACHE_MAXSIZE=20G
       - CONTAINER_NAME=${COMPOSE_PROJECT_NAME:-ai-devbox}-advanced

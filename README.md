@@ -13,6 +13,7 @@ This repository provides a GPU-enabled C++ development stack based on NVIDIA Dee
 
 ## Table of contents
 
+- [Workflow diagram](#workflow-diagram)
 - [1. Prerequisites](#1-prerequisites)
 - [2. Project layout expectation](#2-project-layout-expectation)
 - [3. Build images](#3-build-images)
@@ -22,11 +23,24 @@ This repository provides a GPU-enabled C++ development stack based on NVIDIA Dee
 - [4.3 Numbered project launcher script](#43-numbered-project-launcher-script)
 - [5. Use from VS Code](#5-use-from-vs-code)
 - [6. Debugging notes](#6-debugging-notes)
-- [7. Qbs support (C++ projects)](#7-qbs-support-c-projects)
+- [7. Build systems (CMake + Qbs)](#7-build-systems-cmake--qbs)
 - [8. ccache (shared across containers)](#8-ccache-shared-across-containers)
 - [9. Common commands](#9-common-commands)
 - [10. Container runtime info helper](#10-container-runtime-info-helper)
 - [11. Notes](#11-notes)
+
+---
+
+## Workflow diagram
+
+```mermaid
+flowchart LR
+  A[Host prerequisites<br/>NVIDIA driver + Docker + Toolkit] --> B[Run setup scripts<br/>./setup/run.sh]
+  B --> C[Build image<br/>docker compose build advanced]
+  C --> D[Start container<br/>docker compose up -d advanced]
+  D --> E[Open in VS Code Dev Container]
+  E --> F[Build C++ project<br/>CMake or Qbs]
+```
 
 ---
 
@@ -123,10 +137,43 @@ docker compose build stable
 
 ### 4.1 Compose (recommended)
 
-Launch the advanced service in background:
+Use the helper script (recommended):
 
 ```bash
+bash ./container/compose-up.sh
+```
+
+It computes `(cores - 1)` (minimum `1`) and exports:
+
+- `CMAKE_BUILD_PARALLEL_LEVEL`
+- `AI_DEVBOX_BUILD_JOBS`
+
+Then it runs `docker compose up -d advanced`.
+
+You can select another service:
+
+```bash
+bash ./container/compose-up.sh advanced
+```
+
+Manual equivalent:
+
+Compute conservative build parallelism (cores minus one, minimum one), then launch:
+
+```bash
+CORES="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
+CMAKE_BUILD_PARALLEL_LEVEL=$((CORES - 1))
+if [[ "${CMAKE_BUILD_PARALLEL_LEVEL}" -lt 1 ]]; then CMAKE_BUILD_PARALLEL_LEVEL=1; fi
+AI_DEVBOX_BUILD_JOBS="${CMAKE_BUILD_PARALLEL_LEVEL}"
+
+export CMAKE_BUILD_PARALLEL_LEVEL AI_DEVBOX_BUILD_JOBS
 docker compose up -d advanced
+```
+
+Quick override example:
+
+```bash
+CMAKE_BUILD_PARALLEL_LEVEL=6 AI_DEVBOX_BUILD_JOBS=6 docker compose up -d advanced
 ```
 
 Open shell in running container:
@@ -138,13 +185,13 @@ docker exec -it ai-devbox-advanced /bin/bash
 Stop it:
 
 ```bash
-docker compose stop advanced
+bash ./container/compose-stop.sh
 ```
 
 Remove it:
 
 ```bash
-docker compose rm -f advanced
+bash ./container/compose-rm.sh
 ```
 
 ### 4.2 Equivalent `docker run`
@@ -157,6 +204,8 @@ docker run -d \
   --restart unless-stopped \
   --gpus all \
   -e NVIDIA_VISIBLE_DEVICES=all \
+  -e CMAKE_BUILD_PARALLEL_LEVEL="${CMAKE_BUILD_PARALLEL_LEVEL:-1}" \
+  -e AI_DEVBOX_BUILD_JOBS="${AI_DEVBOX_BUILD_JOBS:-1}" \
   -v "$PWD:/root/project" \
   -v ai-devbox-ccache:/root/.ccache \
   ai-devbox:advanced
@@ -212,6 +261,17 @@ cd ~/Development/MyProject
 
 Inside that container, C++ sources in the host checkout's `source/` folder are available at `/root/project/source`.
 
+The launcher also sets conservative defaults for build parallelism to keep GUI hosts responsive:
+
+- `CMAKE_BUILD_PARALLEL_LEVEL=(host cores - 1)`
+- `AI_DEVBOX_BUILD_JOBS=(host cores - 1)`
+
+Both values are clamped to a minimum of `1`, and can be overridden before launching:
+
+```bash
+CMAKE_BUILD_PARALLEL_LEVEL=6 AI_DEVBOX_BUILD_JOBS=6 PROJECT_PREFIX=~/Development/MyProject ./container/start.sh 10
+```
+
 ---
 
 ## 5. Use from VS Code
@@ -228,6 +288,7 @@ Recommended extensions are configured automatically:
 
 - `ms-vscode.cpptools`
 - `ms-vscode.cmake-tools`
+- `bierner.markdown-mermaid`
 
 ---
 
@@ -244,16 +305,47 @@ So C++ symbols appear demangled during debugging sessions.
 
 ---
 
-## 7. Qbs support (C++ projects)
+## 7. Build systems (CMake + Qbs)
 
-Qbs is installed in the image, so Qbs-based projects can be built directly in the container.
+This image supports both CMake- and Qbs-based C++ projects.
 
-Check version:
+For interactive desktop use, prefer one less than total cores:
 
 ```bash
+CORES="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
+JOBS=$((CORES - 1))
+if [[ "${JOBS}" -lt 1 ]]; then JOBS=1; fi
+```
+
+If you start the container with `./container/start.sh`, this is already preconfigured via
+`CMAKE_BUILD_PARALLEL_LEVEL` and `AI_DEVBOX_BUILD_JOBS`.
+
+Check tool versions:
+
+```bash
+cmake --version
 qbs --version
 clang-format --version
 ```
+
+### CMake quick start
+
+Configure and build a Debug target:
+
+```bash
+cd /root/project
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+cmake --build build --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-$JOBS}"
+```
+
+Release build:
+
+```bash
+cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
+cmake --build build-release --parallel "${CMAKE_BUILD_PARALLEL_LEVEL:-$JOBS}"
+```
+
+### Qbs quick start
 
 Create/update a profile (example using GCC):
 
@@ -261,18 +353,18 @@ Create/update a profile (example using GCC):
 qbs setup-toolchains --type gcc /usr/bin/g++ gcc
 ```
 
-Configure and build a project:
+Configure and build a Debug target:
 
 ```bash
 cd /root/project
 qbs config defaultProfile gcc
-qbs build -f your-project.qbs profile:gcc config:debug
+qbs build -f your-project.qbs profile:gcc config:debug --jobs "${AI_DEVBOX_BUILD_JOBS:-$JOBS}"
 ```
 
 Release build:
 
 ```bash
-qbs build -f your-project.qbs profile:gcc config:release
+qbs build -f your-project.qbs profile:gcc config:release --jobs "${AI_DEVBOX_BUILD_JOBS:-$JOBS}"
 ```
 
 ---
@@ -305,7 +397,7 @@ ccache -C
 Bring up advanced service:
 
 ```bash
-docker compose up -d advanced
+bash ./container/compose-up.sh
 ```
 
 Rebuild advanced image:
@@ -318,6 +410,18 @@ View logs:
 
 ```bash
 docker compose logs -f advanced
+```
+
+Stop advanced service:
+
+```bash
+bash ./container/compose-stop.sh
+```
+
+Remove advanced service:
+
+```bash
+bash ./container/compose-rm.sh
 ```
 
 Stop all services:
@@ -362,6 +466,10 @@ Or export values directly in your shell:
 
 ```bash
 export AI_DEVBOX_ADVANCED_SHA="$(docker image inspect ai-devbox:advanced --format '{{.Id}}')"
+CORES="$(getconf _NPROCESSORS_ONLN 2>/dev/null || nproc 2>/dev/null || echo 1)"
+export CMAKE_BUILD_PARALLEL_LEVEL=$((CORES - 1))
+if [[ "${CMAKE_BUILD_PARALLEL_LEVEL}" -lt 1 ]]; then export CMAKE_BUILD_PARALLEL_LEVEL=1; fi
+export AI_DEVBOX_BUILD_JOBS="${CMAKE_BUILD_PARALLEL_LEVEL}"
 docker compose up -d advanced
 ```
 

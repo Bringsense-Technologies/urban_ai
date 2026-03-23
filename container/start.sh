@@ -102,10 +102,25 @@ if docker ps -a --format '{{.Names}}' | grep -Fxq "$container_name"; then
   exit 1
 fi
 
+host_cores="$(getconf _NPROCESSORS_ONLN 2>/dev/null || echo 1)"
+if [[ ! "${host_cores}" =~ ^[0-9]+$ || "${host_cores}" -lt 1 ]]; then
+  host_cores=1
+fi
+default_build_jobs=$((host_cores - 1))
+if [[ "${default_build_jobs}" -lt 1 ]]; then
+  default_build_jobs=1
+fi
+
+# Allow overrides while defaulting to one less than total host cores for desktop responsiveness.
+cmake_parallel_level="${CMAKE_BUILD_PARALLEL_LEVEL:-${default_build_jobs}}"
+ai_devbox_build_jobs="${AI_DEVBOX_BUILD_JOBS:-${default_build_jobs}}"
+
 docker run -d \
   --name "$container_name" \
   --restart unless-stopped \
   --gpus all \
+  -e CMAKE_BUILD_PARALLEL_LEVEL="$cmake_parallel_level" \
+  -e AI_DEVBOX_BUILD_JOBS="$ai_devbox_build_jobs" \
   -e NVIDIA_VISIBLE_DEVICES=all \
   -v "$project_path:/root/project" \
   -v ai-devbox-ccache:/root/.ccache \
@@ -113,3 +128,4 @@ docker run -d \
 
 echo "Started container: $container_name"
 echo "Host path mapped to /root/project: $project_path"
+echo "Default build jobs in container: CMAKE_BUILD_PARALLEL_LEVEL=${cmake_parallel_level}, AI_DEVBOX_BUILD_JOBS=${ai_devbox_build_jobs}"

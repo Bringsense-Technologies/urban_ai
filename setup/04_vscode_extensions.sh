@@ -8,6 +8,7 @@ extensions=(
   "ms-vscode.cpptools"
   "ms-vscode.cpptools-extension-pack"
   "ms-vscode.cpptools-themes"
+  "bierner.markdown-mermaid"
   "qbs-community.qbs-tools"
   "xaver.clang-format"
 )
