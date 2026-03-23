@@ -6,6 +6,7 @@ This repository provides a GPU-enabled C++ development stack based on NVIDIA Dee
 - Project root mapped from host <project> to container `/root/project`
 - C++ source folder mapped from host `<project>/source` to container `/root/project/source`
 - VS Code Dev Container support (`.devcontainer/devcontainer.json`)
+- Pre-installed C++ AI and Computer Vision libraries: LibTorch, Eigen, and OpenCV
 - Build system support for both CMake and Qbs projects
 - C++ debugging support (`gdb`, `gdbserver`, `SYS_PTRACE`, `seccomp:unconfined`)
 - C++ symbol demangling enabled by default in GDB
