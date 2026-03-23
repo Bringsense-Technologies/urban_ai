@@ -23,6 +23,8 @@ base_image="unknown"
 gcc_version="unknown"
 cmake_version="unknown"
 torch_url="unknown"
+torch_version="unknown"
+opencv_version="unknown"
 eigen_version="unknown"
 ccache_maxsize="${CCACHE_MAXSIZE:-unknown}"
 
@@ -33,6 +35,8 @@ if [[ -f "${build_info_file}" ]]; then
       AI_DEVBOX_GCC_VERSION) gcc_version="${value}" ;;
       AI_DEVBOX_CMAKE_VERSION) cmake_version="${value}" ;;
       AI_DEVBOX_TORCH_URL) torch_url="${value}" ;;
+      AI_DEVBOX_TORCH_VERSION) torch_version="${value}" ;;
+      AI_DEVBOX_OPENCV_VERSION) opencv_version="${value}" ;;
       AI_DEVBOX_EIGEN_VERSION) eigen_version="${value}" ;;
       AI_DEVBOX_CCACHE_MAXSIZE)
         if [[ -z "${CCACHE_MAXSIZE:-}" ]]; then
@@ -49,6 +53,8 @@ echo "Image name: ${image_name}"
 echo "Base image: ${base_image}"
 echo "GCC version: ${gcc_version}"
 echo "CMake version: ${cmake_version}"
+echo "LibTorch version: ${torch_version}"
 echo "LibTorch URL: ${torch_url}"
+echo "OpenCV version: ${opencv_version}"
 echo "Eigen version: ${eigen_version}"
 echo "ccache max size: ${ccache_maxsize}"

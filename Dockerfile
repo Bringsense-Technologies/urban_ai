@@ -142,16 +142,22 @@ COPY --from=downloader /opt/eigen /opt/eigen
 ENV Torch_DIR=/opt/libtorch/share/cmake/Torch
 ENV LD_LIBRARY_PATH=/opt/libtorch/lib:$LD_LIBRARY_PATH
 
-RUN printf '%s\n' \
-    "AI_DEVBOX_BASE_IMAGE=${BASE_IMAGE_URL}" \
-    "AI_DEVBOX_GCC_VERSION=${GCC_VERSION}" \
-    "AI_DEVBOX_CMAKE_VERSION=${CMAKE_VERSION}" \
-    "AI_DEVBOX_TORCH_URL=${TORCH_URL}" \
-    "AI_DEVBOX_TORCH_SHA256=${TORCH_SHA256}" \
-    "AI_DEVBOX_REQUIRE_TORCH_SHA256=${REQUIRE_TORCH_SHA256}" \
-    "AI_DEVBOX_EIGEN_VERSION=${EIGEN_VERSION}" \
-    "AI_DEVBOX_CCACHE_MAXSIZE=${CCACHE_MAXSIZE}" \
-    > /etc/ai-devbox-release
+RUN torch_ver="$(tr -d '[:space:]' < /opt/libtorch/version.txt 2>/dev/null || echo 'unknown')" \
+    && opencv_ver="$(pkg-config --modversion opencv4 2>/dev/null \
+         || dpkg -l libopencv-dev 2>/dev/null | awk '/^ii/{print $3}' | head -1 \
+         || echo 'unknown')" \
+    && printf '%s\n' \
+       "AI_DEVBOX_BASE_IMAGE=${BASE_IMAGE_URL}" \
+       "AI_DEVBOX_GCC_VERSION=${GCC_VERSION}" \
+       "AI_DEVBOX_CMAKE_VERSION=${CMAKE_VERSION}" \
+       "AI_DEVBOX_TORCH_URL=${TORCH_URL}" \
+       "AI_DEVBOX_TORCH_SHA256=${TORCH_SHA256}" \
+       "AI_DEVBOX_REQUIRE_TORCH_SHA256=${REQUIRE_TORCH_SHA256}" \
+       "AI_DEVBOX_EIGEN_VERSION=${EIGEN_VERSION}" \
+       "AI_DEVBOX_CCACHE_MAXSIZE=${CCACHE_MAXSIZE}" \
+       "AI_DEVBOX_TORCH_VERSION=${torch_ver}" \
+       "AI_DEVBOX_OPENCV_VERSION=${opencv_ver}" \
+       > /etc/ai-devbox-release
 
 # -----------------------------------------------------------------------------
 # 4. ENTRYPOINT
