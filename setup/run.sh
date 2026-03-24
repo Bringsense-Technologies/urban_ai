@@ -52,6 +52,7 @@ fi
 
 echo
 current_step=""
+exit_code=0
 trap 'exit_code=$?; if [[ ${exit_code} -ne 0 && -n "${current_step}" ]]; then echo "[SETUP] Failed while running $(basename "${current_step}") (exit code ${exit_code})" >&2; fi' EXIT
 for step in "${steps[@]}"; do
   current_step="${step}"
@@ -66,4 +67,9 @@ done
 trap - EXIT
 
 echo "All setup steps completed."
+if command -v shellcheck >/dev/null 2>&1; then
+  echo "ShellCheck available: $(shellcheck --version | head -n 1)"
+else
+  echo "Warning: ShellCheck was not found on PATH. Run setup/05_shellcheck.sh or install it manually." >&2
+fi
 echo "If NVIDIA drivers were installed/updated, reboot before launching containers."

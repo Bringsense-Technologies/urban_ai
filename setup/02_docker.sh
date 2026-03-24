@@ -60,6 +60,7 @@ sudo apt-get update
 sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Add your user to the docker group (so you don't need 'sudo docker')
-sudo usermod -aG docker $USER
-echo "Docker group updated for user '$USER'."
+target_user="${SUDO_USER:-${USER}}"
+sudo usermod -aG docker "${target_user}"
+echo "Docker group updated for user '${target_user}'."
 echo "Log out and back in (or reboot) before running docker without sudo."

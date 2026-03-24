@@ -10,7 +10,8 @@ disable_invalid_docker_repo() {
 
   if grep -Eq '^deb .*download\.docker\.com/linux/ubuntu ' "${docker_list}" \
     && ! grep -Eq '^deb .*download\.docker\.com/linux/ubuntu (noble|jammy|focal|bionic) ' "${docker_list}"; then
-    local backup="${docker_list}.disabled.$(date +%Y%m%d%H%M%S)"
+    local backup
+    backup="${docker_list}.disabled.$(date +%Y%m%d%H%M%S)"
     echo "Disabling invalid Docker apt source in ${docker_list} (backup: ${backup})"
     sudo mv "${docker_list}" "${backup}"
   fi

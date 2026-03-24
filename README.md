@@ -61,6 +61,7 @@ You can run the scripts in `setup/`:
 - `setup/02_docker.sh`
 - `setup/03_nvidia_container_toolkit.sh`
 - `setup/04_vscode_extensions.sh`
+- `setup/05_shellcheck.sh`
 
 Or run them in order via the root helper:
 
@@ -80,6 +81,7 @@ chmod +x setup/*.sh
 ./setup/02_docker.sh
 ./setup/03_nvidia_container_toolkit.sh
 ./setup/04_vscode_extensions.sh
+./setup/05_shellcheck.sh
 ```
 
 Verify GPU inside Docker:
