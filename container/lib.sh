@@ -13,7 +13,7 @@
 #   compose_service_usage – prints standard service-selection usage
 
 CONTAINER_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(cd "${CONTAINER_DIR}/.." && pwd)"
+export REPO_ROOT="$(cd "${CONTAINER_DIR}/.." && pwd)"
 
 require_docker_cli() {
   if ! command -v docker >/dev/null 2>&1; then

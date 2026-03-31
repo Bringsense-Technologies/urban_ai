@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib.sh
+# shellcheck source=container/lib.sh
 source "${SCRIPT_DIR}/lib.sh"
 
 if [[ ${1:-} == "-h" || ${1:-} == "--help" ]]; then

@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-# shellcheck source=lib.sh
+# shellcheck source=container/lib.sh
 source "${SCRIPT_DIR}/lib.sh"
 
 usage() {
@@ -108,7 +108,7 @@ docker run -d \
   --gpus all \
   --cap-add SYS_PTRACE \
   --security-opt seccomp:unconfined \
-  "${extra_flags[@]+"${extra_flags[@]}"}"\
+  "${extra_flags[@]}" \
   -e CMAKE_BUILD_PARALLEL_LEVEL="$cmake_parallel_level" \
   -e AI_DEVBOX_BUILD_JOBS="$ai_devbox_build_jobs" \
   -e CCACHE_MAXSIZE="$ccache_maxsize" \
