@@ -34,7 +34,8 @@ This repository provides a GPU-enabled C++ development stack based on NVIDIA Dee
 - [9. ccache (shared across containers)](#9-ccache-shared-across-containers)
 - [10. Common commands](#10-common-commands)
 - [11. Container runtime info helper](#11-container-runtime-info-helper)
-- [12. Notes](#12-notes)
+- [12. Publishing images to GHCR](#12-publishing-images-to-ghcr)
+- [13. Notes](#13-notes)
 
 ---
 
@@ -47,6 +48,8 @@ flowchart LR
   C --> D[Start container<br/>docker compose up -d advanced]
   D --> E[Open in VS Code Dev Container]
   E --> F[Build C++ project<br/>CMake or Qbs]
+  G[Push git tag vX.Y.Z] --> H[GitHub Actions: publish.yml]
+  H --> I[ghcr.io/org/repo:X.Y.Z]
 ```
 
 ---
@@ -621,7 +624,84 @@ The metadata is embedded during image build via OCI labels and a small release f
 
 ---
 
-## 12. Notes
+## 12. Publishing images to GHCR
+
+The workflow `.github/workflows/publish.yml` automatically builds and pushes the image
+(with ZED SDK always enabled) to the **GitHub Container Registry (GHCR)**.
+
+### What gets built
+
+| Build arg | Value used in CI |
+| --- | --- |
+| `BASE_IMAGE_URL` | `nvcr.io/nvidia/deepstream:9.0-triton-multiarch` |
+| `GCC_VERSION` | `14` |
+| `CMAKE_VERSION` | `3.31.0` |
+| `TORCH_URL` | LibTorch `2.5.1+cu121` (pre-built, cxx11 ABI) |
+| `REQUIRE_TORCH_SHA256` | `0` |
+| `EIGEN_VERSION` | `5.0.0` |
+| `INSTALL_ZED_SDK` | `1` (always enabled) |
+| `ZED_SDK_MAJOR` | `5` |
+| `ZED_SDK_MINOR` | `2` |
+| `ZED_CUDA_MAJOR` | `12` |
+| `ZED_GL` | `0` (headless; no OpenGL GUI tools) |
+
+### Image tags
+
+For a tag push of `v1.2.3`, the following tags are published to GHCR:
+
+```
+ghcr.io/<org>/<repo>:1.2.3
+ghcr.io/<org>/<repo>:1.2
+ghcr.io/<org>/<repo>:latest
+```
+
+### Triggers
+
+| Event | Behaviour |
+| --- | --- |
+| `git push` of a `v*.*.*` tag | Builds and pushes, tags as semver + `latest` |
+| Manual `workflow_dispatch` | Builds and pushes, tagged with the custom label input (default: `manual`) |
+
+### Publish a new release
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+Then watch the **Actions → Publish** workflow in the GitHub UI.
+
+### Pull the published image
+
+```bash
+docker pull ghcr.io/<org>/<repo>:latest
+```
+
+For GPU use:
+
+```bash
+docker run --rm --gpus all ghcr.io/<org>/<repo>:latest nvidia-smi
+```
+
+### Authentication
+
+No extra secrets are required. The workflow uses the built-in `GITHUB_TOKEN` which is
+automatically available in every GitHub Actions run. For public repositories, anyone can
+pull the image without authentication.
+
+### Build cache
+
+The workflow uses **GitHub Actions cache** (`type=gha`) to store Docker layer cache between
+runs. This is free (shared 10 GB quota per repository). On a cache hit, only changed layers
+are rebuilt — significantly reducing build time after the first successful run.
+
+> **Note:** The ZED SDK installer is ~2–3 GB and is downloaded fresh if its layer is
+> invalidated. Avoid changing `ZED_SDK_MAJOR` / `ZED_SDK_MINOR` / `ZED_CUDA_MAJOR`
+> unnecessarily to preserve the cached layer.
+
+---
+
+## 13. Notes
 
 - Container working directory is `/root/project`.
 - If NVIDIA runtime fails, recheck driver/toolkit installation and restart Docker.
